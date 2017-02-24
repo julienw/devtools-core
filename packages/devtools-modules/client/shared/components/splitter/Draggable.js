@@ -19,24 +19,28 @@ const Draggable = React.createClass({
 
   startDragging(ev) {
     ev.preventDefault();
-    const doc = ReactDOM.findDOMNode(this).ownerDocument;
-    doc.addEventListener("mousemove", this.onMove);
-    doc.addEventListener("mouseup", this.onUp);
+    const elt = ReactDOM.findDOMNode(this);
+    // We use setCapture's retargeting option to get the events even when the
+    // cursor moves over iframe children.
+    elt.setCapture(true);
+    elt.addEventListener("mousemove", this.onMove);
+    elt.addEventListener("mouseup", this.onUp);
     this.props.onStart && this.props.onStart();
   },
 
   onMove(ev) {
     ev.preventDefault();
-    // Use screen coordinates so, moving mouse over iframes
-    // doesn't mangle (relative) coordinates.
-    this.props.onMove(ev.screenX, ev.screenY);
+    // because we use setCapture, the event's properties are correct even with
+    // iframes. We pass the whole event because we don't know which properties
+    // our user needs.
+    this.props.onMove(ev);
   },
 
   onUp(ev) {
     ev.preventDefault();
-    const doc = ReactDOM.findDOMNode(this).ownerDocument;
-    doc.removeEventListener("mousemove", this.onMove);
-    doc.removeEventListener("mouseup", this.onUp);
+    const elt = ReactDOM.findDOMNode(this);
+    elt.removeEventListener("mousemove", this.onMove);
+    elt.removeEventListener("mouseup", this.onUp);
     this.props.onStop && this.props.onStop();
   },
 
