@@ -17,31 +17,43 @@ const Draggable = React.createClass({
     className: PropTypes.string
   },
 
+  componentWillMount() {
+    // In some situations we don't properly get the mouseup event. This can
+    // happen when mouseup happens outside of the browser window. In that case
+    // we don't want to attach the event listeners again at mousedown.
+    this.areEventsBound = false;
+  },
+
   startDragging(ev) {
     ev.preventDefault();
     const elt = ReactDOM.findDOMNode(this);
-    // We use setCapture's retargeting option to get the events even when the
-    // cursor moves over iframe children.
-    elt.setCapture(true);
-    elt.addEventListener("mousemove", this.onMove);
-    elt.addEventListener("mouseup", this.onUp);
+    if (!this.areEventsBound) {
+      this.areEventsBound = true;
+      const document = elt.ownerDocument;
+      document.addEventListener("mousemove", this.onMove);
+      document.addEventListener("mouseup", this.onUp);
+    }
     this.props.onStart && this.props.onStart();
   },
 
   onMove(ev) {
     ev.preventDefault();
-    // because we use setCapture, the event's properties are correct even with
-    // iframes. We pass the whole event because we don't know which properties
-    // our user needs.
+    // We pass the whole event because we don't know which properties
+    // the callee needs.
     this.props.onMove(ev);
   },
 
   onUp(ev) {
     ev.preventDefault();
-    const elt = ReactDOM.findDOMNode(this);
-    elt.removeEventListener("mousemove", this.onMove);
-    elt.removeEventListener("mouseup", this.onUp);
+    this.unattachListeners();
     this.props.onStop && this.props.onStop();
+  },
+
+  unattachListeners() {
+    const document = ReactDOM.findDOMNode(this).ownerDocument;
+    document.removeEventListener("mousemove", this.onMove);
+    document.removeEventListener("mouseup", this.onUp);
+    this.areEventsBound = false;
   },
 
   render() {
@@ -50,7 +62,11 @@ const Draggable = React.createClass({
       className: this.props.className,
       onMouseDown: this.startDragging
     });
-  }
+  },
+
+  componentWillUnmount() {
+    this.unattachListeners();
+  },
 });
 
 module.exports = Draggable;
